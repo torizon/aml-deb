@@ -1,1 +1,3 @@
-README.md
+usr/include/
+usr/lib/*/libaml.so.0
+usr/lib/*/pkgconfig/*
