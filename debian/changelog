@@ -1,5 +1,5 @@
 aml (0.2.0-1) unstable; urgency=medium
 
-  * Initial release.
+  * Initial release. (Closes: #1000901)
 
- -- Boyuan Yang <byang@debian.org>  Sat, 11 Sep 2021 09:19:02 -0400
+ -- Boyuan Yang <byang@debian.org>  Tue, 30 Nov 2021 16:56:11 -0500
