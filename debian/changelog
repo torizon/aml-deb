@@ -1,6 +1,12 @@
+aml (0.2.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Boyuan Yang <byang@debian.org>  Fri, 08 Jul 2022 21:21:07 -0400
+
 aml (0.2.1-1) unstable; urgency=medium
 
-  * New upstream release. 
+  * New upstream release.
 
  -- Boyuan Yang <byang@debian.org>  Fri, 03 Dec 2021 12:23:37 -0500
 
