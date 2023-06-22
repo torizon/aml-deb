@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Andri Yngvason
+ * Copyright (c) 2020 - 2022 Andri Yngvason
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +37,7 @@ struct epoll_state {
 struct epoll_signal {
 	struct epoll_state* state;
 	int fd;
-	int ref;
+	struct aml_weak_ref* ref;
 };
 
 static void* epoll_new_state(struct aml* aml)
@@ -98,10 +98,12 @@ static void epoll_emit_event(struct epoll_state* self,
 	}
 
 	enum aml_event aml_events = AML_EVENT_NONE;
-	if (event->events & (EPOLLIN | EPOLLPRI))
+	if (event->events & EPOLLIN)
 		aml_events |= AML_EVENT_READ;
 	if (event->events & EPOLLOUT)
 		aml_events |= AML_EVENT_WRITE;
+	if (event->events & EPOLLPRI)
+		aml_events |= AML_EVENT_OOB;
 
 	aml_emit(self->aml, event->data.ptr, aml_events);
 }
@@ -126,9 +128,11 @@ static void epoll_event_from_aml_handler(struct epoll_event* event,
 
 	event->events = 0;
 	if (in & AML_EVENT_READ)
-		event->events |= EPOLLIN | EPOLLPRI;
+		event->events |= EPOLLIN;
 	if (in & AML_EVENT_WRITE)
 		event->events |= EPOLLOUT;
+	if (in & AML_EVENT_OOB)
+		event->events |= EPOLLPRI;
 
 	event->data.ptr = handler;
 }
@@ -164,6 +168,7 @@ static void epoll_signal_cleanup(void* userdata)
 {
 	struct epoll_signal* sig = userdata;
 	close(sig->fd);
+	aml_weak_ref_del(sig->ref);
 	free(sig);
 }
 
@@ -175,7 +180,7 @@ static void epoll_on_signal(void* obj)
 	struct signalfd_siginfo fdsi;
 	(void)read(ctx->fd, &fdsi, sizeof(fdsi));
 
-	struct aml_signal* sig = aml_try_ref(ctx->ref);
+	struct aml_signal* sig = aml_weak_ref_read(ctx->ref);
 	if (!sig)
 		return;
 
@@ -198,7 +203,7 @@ static int epoll_add_signal(void* state, struct aml_signal* sig)
 	sigaddset(&ss, signo);
 
 	ctx->state = self;
-	ctx->ref = aml_get_id(sig);
+	ctx->ref = aml_weak_ref_new(sig);
 
 	ctx->fd = signalfd(-1, &ss, SFD_NONBLOCK | SFD_CLOEXEC);
 	if (ctx->fd < 0)
@@ -247,9 +252,9 @@ static int epoll_set_deadline(void* state, uint64_t deadline)
 
 	struct itimerspec it = {
 		.it_value = {
-			.tv_sec = (uint32_t)(deadline / UINT64_C(1000)),
-			.tv_nsec = (uint32_t)((deadline % UINT64_C(1000)) *
-				UINT64_C(1000000)),
+			.tv_sec = (uint32_t)(deadline / UINT64_C(1000000)),
+			.tv_nsec = (uint32_t)((deadline % UINT64_C(1000000)) *
+				UINT64_C(1000)),
 		},
 	};
 

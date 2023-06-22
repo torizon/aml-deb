@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Andri Yngvason
+ * Copyright (c) 2020 - 2022 Andri Yngvason
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,6 +15,17 @@
  */
 
 #pragma once
+
+#ifndef AML_UNSTABLE_API
+#define AML_UNSTABLE_API 0
+#endif
+
+/* Something like this is necessary when changes are made that don't break the
+ * build but will cause nasty bugs if ignored.
+ */
+#if AML_UNSTABLE_API != 1
+#error "API has changed! Please, observe the changes and acknowledge by defining AML_UNSTABLE_API as 1 before including aml.h"
+#endif
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -32,12 +43,14 @@ enum aml_event {
 	AML_EVENT_NONE = 0,
 	AML_EVENT_READ = 1 << 0,
 	AML_EVENT_WRITE = 1 << 1,
+	AML_EVENT_OOB = 1 << 2,
 };
 
 typedef void (*aml_callback_fn)(void* obj);
 typedef void (*aml_free_fn)(void*);
 
 extern const char aml_version[];
+extern const int aml_unstable_abi_version;
 
 /* Create a new main loop instance */
 struct aml* aml_new(void);
@@ -56,12 +69,12 @@ struct aml* aml_get_default(void);
 /* Check if there are pending events. The user should call aml_dispatch()
  * afterwards if there are any pending events.
  *
- * This function behaves like poll(): it will wait for either a timeout (in ms)
- * or a signal.
+ * This function behaves like poll(): it will wait for either a timeout (in µs)
+ * or a signal. Will block indefinitely if timeout is -1.
  *
  * Returns: -1 on timeout or signal; otherwise number of pending events.
  */
-int aml_poll(struct aml*, int timeout);
+int aml_poll(struct aml*, int64_t timeout);
 
 /* This is a convenience function that calls aml_poll() and aml_dispatch() in
  * a loop until aml_exit() is called.
@@ -91,21 +104,22 @@ int aml_ref(void* obj);
  */
 int aml_unref(void* obj);
 
-/* Get global object id.
+/* Create a new weak reference to the object.
  *
- * This can be used to break reference loops.
- *
- * Returns an id that can be used to access the object using aml_try_ref().
+ * The reference object must be deleted using aml_weak_ref_del().
  */
-unsigned long long aml_get_id(const void* obj);
+struct aml_weak_ref* aml_weak_ref_new(void* obj);
 
-/* Try to reference an object with an id returned by aml_get_id().
- *
- * This increments the reference count by one.
- *
- * Returns the aml object if found. Otherwise NULL.
+/* Delete a weak reference created by aml_weak_ref_new().
  */
-void* aml_try_ref(unsigned long long id);
+void aml_weak_ref_del(struct aml_weak_ref* self);
+
+/* Try to get a new strong reference from a weak reference object.
+ *
+ * If the weak reference is still valid, the reference count on the returned
+ * aml object will be increased by one. Otherwise NULL is returned.
+ */
+void* aml_weak_ref_read(struct aml_weak_ref* self);
 
 /* The following calls create event handler objects.
  *
@@ -115,10 +129,10 @@ void* aml_try_ref(unsigned long long id);
 struct aml_handler* aml_handler_new(int fd, aml_callback_fn, void* userdata,
                                     aml_free_fn);
 
-struct aml_timer* aml_timer_new(uint32_t timeout, aml_callback_fn,
+struct aml_timer* aml_timer_new(uint64_t timeout, aml_callback_fn,
                                 void* userdata, aml_free_fn);
 
-struct aml_ticker* aml_ticker_new(uint32_t period, aml_callback_fn,
+struct aml_ticker* aml_ticker_new(uint64_t period, aml_callback_fn,
                                   void* userdata, aml_free_fn);
 
 struct aml_signal* aml_signal_new(int signo, aml_callback_fn,
@@ -155,11 +169,11 @@ enum aml_event aml_get_event_mask(const struct aml_handler* obj);
  */
 enum aml_event aml_get_revents(const struct aml_handler* obj);
 
-/* Set timeout/period of a timer/ticker
+/* Set timeout/period of a timer/ticker in µs
  *
  * Calling this on a started timer/ticker yields undefined behaviour
  */
-void aml_set_duration(void* obj, uint32_t value);
+void aml_set_duration(void* obj, uint64_t value);
 
 /* Start an event handler.
  *
@@ -172,6 +186,10 @@ int aml_start(struct aml*, void* obj);
 /* Stop an event handler.
  *
  * This decreases the reference count on a handler object.
+ *
+ * The callback or done function will not be run after this is called. However,
+ * for aml_work, the work function may already be executing and it will be
+ * allowed to complete.
  *
  * Returns: 0 on success, -1 if the handler is already stopped.
  */

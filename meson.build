@@ -1,10 +1,11 @@
 project(
 	'aml',
 	'c',
-	version: '0.2.2',
+	version: '0.3.0',
 	license: 'ISC',
 	default_options: [
 		'c_std=c11',
+		'warning_level=2',
 	]
 )
 
@@ -16,7 +17,10 @@ c_args = [
 	'-DPROJECT_VERSION="@0@"'.format(meson.project_version()),
 	'-D_POSIX_C_SOURCE=200809L',
 	'-fvisibility=hidden',
+	'-DAML_UNSTABLE_API=1',
+
 	'-Wmissing-prototypes',
+	'-Wno-unused-parameter',
 ]
 
 git = find_program('git', native: true, required: false)
