@@ -1,3 +1,9 @@
+aml (0.3.0-1) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Boyuan Yang <byang@debian.org>  Mon, 24 Jul 2023 21:12:54 -0400
+
 aml (0.3.0-1~exp1) experimental; urgency=medium
 
   * New upstream release.
