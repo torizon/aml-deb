@@ -3,7 +3,7 @@ Priority: optional
 Section: libs
 Maintainer: Debian QA Group <packages@qa.debian.org>
 Standards-Version: 4.6.2
-Build-Depends: dpkg-dev (>= 1.22.5),
+Build-Depends:
  debhelper-compat (= 13),
  meson,
  pkgconf,
@@ -17,7 +17,7 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Depends:
- libaml0t64 (= ${binary:Version}),
+ libaml0 (= ${binary:Version}),
  ${misc:Depends},
 Description: Andri's Main Loop library (development files)
  Libaml provides an event loop library that aims at portability,
@@ -25,10 +25,7 @@ Description: Andri's Main Loop library (development files)
  .
  This package provides library development files.
 
-Package: libaml0t64
-Provides: ${t64:Provides}
-Replaces: libaml0
-Breaks: libaml0 (<< ${source:Version})
+Package: libaml0
 Architecture: any
 Multi-Arch: same
 Depends:
