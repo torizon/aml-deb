@@ -1,3 +1,14 @@
+aml (0.3.0-2~toradex1) bookworm; urgency=medium
+
+  * Team upload.
+  * Revert t64 transition.
+  * github: workflows: add deb-builder.yml.
+  * debian/control: change Maintainer to Toradex.
+  * debian/source/options: make dpkg-source ignore our added github workflow.
+
+
+ -- Carlos Henrique Lima Melara <carlos.melara@toradex.com>  Tue, 15 Oct 2024 15:57:47 -0300
+
 aml (0.3.0-2) unstable; urgency=medium
 
   * QA upload.
