@@ -1,0 +1,22 @@
+on: push
+
+jobs:
+  build-debs:
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ['amd64', 'arm64', 'armhf']
+    uses: torizon/torizon-deb-ci/.github/workflows/toradex-deb-ci.yml@main
+    with:
+      arch: ${{ matrix.arch }}
+      distribution: bookworm
+      docker-image: debian:bookworm
+      package-name: aml
+      extra-packages: ca-certificates
+      run-attestation: true
+      run-piuparts: false
+      upload-artifacts: true
